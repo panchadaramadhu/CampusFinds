@@ -1,3 +1,14 @@
-<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>CampusFind</title><link rel="stylesheet" href="/static/style.css"><script defer src="/static/app.js"></script></head><body>
-<nav><a class="logo" href="/">◈ Campus<span>Find</span></a><button id="menu">☰</button><div id="links"><a href="/">Explore</a><a href="/report">Report Item</a><a href="/feedback">Feedback</a><a href="/admin">Admin</a></div></nav>
-<main>{% with m=get_flashed_messages(with_categories=true) %}{% for t,x in m %}<div class="toast {{t}}">{{x}}</div>{% endfor %}{% endwith %}{% block content %}{% endblock %}</main><footer>CampusFind • Lost items deserve another chance.</footer></body></html>
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Campus lost and found made simple.">
+<title>{% block title %}CampusFind{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script defer src="{{ url_for('static', filename='app.js') }}"></script>
+</head><body>
+<nav><a class="logo" href="{{ url_for('home') }}">◈ Campus<span>Find</span></a>
+<button id="menu" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
+<div id="links"><a href="{{ url_for('home') }}">Explore</a><a href="{{ url_for('report') }}">Report Item</a><a href="{{ url_for('feedback') }}">Feedback</a><a href="{{ url_for('admin') }}">Admin</a></div></nav>
+<main>{% with m=get_flashed_messages(with_categories=true) %}{% for t,x in m %}<div class="toast {{t}}" role="status">{{x}}</div>{% endfor %}{% endwith %}{% block content %}{% endblock %}</main>
+<footer>CampusFind <span>•</span> Helping campus items find their way home.</footer>
+</body></html>

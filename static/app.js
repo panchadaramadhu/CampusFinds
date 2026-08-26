@@ -1,1 +1,1 @@
-const m=document.getElementById("menu"),l=document.getElementById("links");if(m)m.onclick=()=>l.classList.toggle("show");setTimeout(()=>document.querySelectorAll(".toast").forEach(x=>x.remove()),4000);
+const m=document.getElementById("menu"),l=document.getElementById("links");if(m&&l){m.addEventListener("click",()=>{const open=l.classList.toggle("show");m.setAttribute("aria-expanded",String(open));m.textContent=open?"✕":"☰";});}setTimeout(()=>document.querySelectorAll(".toast").forEach(x=>{x.style.opacity="0";setTimeout(()=>x.remove(),250)}),4500);

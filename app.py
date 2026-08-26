@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, session, abort
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
@@ -43,6 +43,15 @@ ADMIN_PASSWORD_HASH = os.environ.get("CAMPUSFIND_ADMIN_PASSWORD_HASH", "")
 _login_attempts = defaultdict(deque)
 
 
+class User(db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False)
+    email = db.Column(db.String(200), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
 class Item(db.Model):
     __tablename__ = "items"
     id = db.Column(db.Integer, primary_key=True)
@@ -56,6 +65,8 @@ class Item(db.Model):
     photo_mime = db.Column(db.String(50), nullable=True)
     status = db.Column(db.String(30), default="Open", nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    reporter_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    reporter = db.relationship("User", foreign_keys=[reporter_id])
 
 
 class Claim(db.Model):
@@ -63,6 +74,9 @@ class Claim(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey("items.id"), nullable=False)
     student_name = db.Column(db.String(150), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    user = db.relationship("User", foreign_keys=[user_id])
+    user_confirmed = db.Column(db.Boolean, default=False, nullable=False)
     roll_number = db.Column(db.String(100), nullable=False)
     proof = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(30), default="Pending", nullable=False)
@@ -119,6 +133,16 @@ def add_security_headers(response):
         "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
     )
     return response
+
+
+def user_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("user_id"):
+            flash("Please sign in to continue.", "error")
+            return redirect(url_for("user_login", next=request.path))
+        return view(*args, **kwargs)
+    return wrapped
 
 
 def admin_required(view):
@@ -204,7 +228,7 @@ def report():
                 return redirect(url_for("report"))
             photo_mime = f.mimetype
 
-        db.session.add(Item(title=title, kind=kind, category=category, location=location,
+        db.session.add(Item(title=title, kind=kind, category=category, location=location, reporter_id=session.get("user_id"),
                             pickup_location=pickup_location or None, description=description,
                             photo_data=photo_data, photo_mime=photo_mime))
         db.session.commit()
@@ -237,27 +261,53 @@ def feedback():
 
 
 @app.route("/claim/<int:id>", methods=["GET", "POST"])
+@user_required
 def claim(id):
     item = db.session.get(Item, id)
-    if not item:
-        return redirect(url_for("home"))
-    if item.kind != "Found" or item.status != "Open":
-        flash("This item is not available for a new claim.", "error")
-        return redirect(url_for("home"))
+    if not item or item.kind != "Found" or item.status != "Open":
+        flash("This item is not available for a new claim.", "error"); return redirect(url_for("home"))
     if request.method == "POST":
-        student_name = clean(request.form.get("student_name"), 150)
-        roll_number = clean(request.form.get("roll_number"), 100)
+        user = db.session.get(User, session["user_id"])
         proof = clean(request.form.get("proof"), 2000)
-        if not student_name or not roll_number or not proof:
-            flash("Please complete all claim details.", "error")
-            return redirect(url_for("claim", id=id))
-        db.session.add(Claim(item_id=id, student_name=student_name, roll_number=roll_number, proof=proof))
-        item.status = "Claim in Progress"
-        db.session.commit()
-        flash("Claim submitted for verification!", "success")
-        return redirect(url_for("home"))
+        if not proof: flash("Please provide ownership proof.", "error"); return redirect(url_for("claim", id=id))
+        db.session.add(Claim(item_id=id, user_id=user.id, student_name=user.name, roll_number=clean(request.form.get("roll_number"),100), proof=proof))
+        item.status = "Claim in Progress"; db.session.commit()
+        flash("Claim submitted. Waiting for admin approval.", "success"); return redirect(url_for("my_reports"))
     return render_template("claim.html", item=item)
 
+@app.route("/user/register", methods=["GET","POST"])
+def user_register():
+    if request.method == "POST":
+        name=clean(request.form.get("name"),150); email=clean(request.form.get("email"),200).lower(); password=request.form.get("password","")
+        if not name or "@" not in email or len(password)<8: flash("Enter a name, valid email, and password of at least 8 characters.","error")
+        elif User.query.filter_by(email=email).first(): flash("An account with this email already exists.","error")
+        else:
+            u=User(name=name,email=email,password_hash=generate_password_hash(password)); db.session.add(u); db.session.commit(); session["user_id"]=u.id; session["user_name"]=u.name; flash("Account created.","success"); return redirect(url_for("my_reports"))
+    return render_template("user_auth.html", mode="register")
+
+@app.route("/user/login", methods=["GET","POST"])
+def user_login():
+    if request.method == "POST":
+        u=User.query.filter_by(email=clean(request.form.get("email"),200).lower()).first(); password=request.form.get("password","")
+        if u and check_password_hash(u.password_hash,password): session["user_id"]=u.id; session["user_name"]=u.name; return redirect(safe_next(request.form.get("next")) or url_for("my_reports"))
+        flash("Invalid email or password.","error")
+    return render_template("user_auth.html", mode="login", next=safe_next(request.values.get("next","")))
+
+@app.post("/user/logout")
+def user_logout():
+    session.pop("user_id",None); session.pop("user_name",None); flash("Logged out.","success"); return redirect(url_for("home"))
+
+@app.get("/my-reports")
+@user_required
+def my_reports():
+    uid=session["user_id"]; reports=Item.query.filter_by(reporter_id=uid).order_by(Item.id.desc()).all(); claims=Claim.query.filter_by(user_id=uid).order_by(Claim.id.desc()).all(); return render_template("my_reports.html", reports=reports, claims=claims)
+
+@app.post("/claim/<int:id>/confirm")
+@user_required
+def confirm_claim(id):
+    c=db.session.get(Claim,id)
+    if not c or c.user_id != session["user_id"] or c.status != "Approved": abort(403)
+    c.user_confirmed=True; c.item.status="Claimed"; db.session.commit(); flash("You confirmed the claim. Pickup is now ready.","success"); return redirect(url_for("my_reports"))
 
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
@@ -311,7 +361,8 @@ def action(id, action):
         return redirect(url_for("admin"))
     claim.status = "Approved" if action == "approve" else "Rejected"
     if action == "approve":
-        claim.item.status = "Claimed"
+        # Admin approval alone keeps the item in progress until the claimant confirms.
+        claim.item.status = "Claim in Progress"
     else:
         # Make the item available again when the pending claim is rejected.
         claim.item.status = "Open"

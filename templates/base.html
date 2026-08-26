@@ -8,7 +8,7 @@
 </head><body>
 <nav><a class="logo" href="{{ url_for('home') }}">◈ Campus<span>Find</span></a>
 <button id="menu" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
-<div id="links"><a href="{{ url_for('home') }}">Explore</a><a href="{{ url_for('report') }}">Report Item</a><a href="{{ url_for('feedback') }}">Feedback</a><a href="{{ url_for('admin') }}">Admin</a></div></nav>
+<div id="links"><a href="{{ url_for('home') }}">Explore</a><a href="{{ url_for('report') }}">Report Item</a><a href="{{ url_for('feedback') }}">Feedback</a>{% if session.get("user_id") %}<a href="{{ url_for('my_reports') }}">My Reports</a><form method="post" action="{{ url_for('user_logout') }}" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Logout</button></form>{% else %}<a href="{{ url_for('user_login') }}">Login</a><a href="{{ url_for('user_register') }}">Register</a>{% endif %}<a href="{{ url_for('admin') }}">Admin</a></div></nav>
 <main>{% with m=get_flashed_messages(with_categories=true) %}{% for t,x in m %}<div class="toast {{t}}" role="status">{{x}}</div>{% endfor %}{% endwith %}{% block content %}{% endblock %}</main>
 <footer>CampusFind <span>•</span> Helping campus items find their way home.</footer>
 </body></html>

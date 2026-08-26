@@ -210,7 +210,7 @@ def report():
         db.session.commit()
         flash("Item posted successfully!", "success")
         return redirect(url_for("home"))
-    return render_template("report.html")
+    return render_template("report.html", selected_kind=clean(request.args.get("kind"), 20))
 
 
 @app.route("/feedback", methods=["GET", "POST"])
@@ -252,6 +252,7 @@ def claim(id):
             flash("Please complete all claim details.", "error")
             return redirect(url_for("claim", id=id))
         db.session.add(Claim(item_id=id, student_name=student_name, roll_number=roll_number, proof=proof))
+        item.status = "Claim in Progress"
         db.session.commit()
         flash("Claim submitted for verification!", "success")
         return redirect(url_for("home"))
@@ -311,6 +312,9 @@ def action(id, action):
     claim.status = "Approved" if action == "approve" else "Rejected"
     if action == "approve":
         claim.item.status = "Claimed"
+    else:
+        # Make the item available again when the pending claim is rejected.
+        claim.item.status = "Open"
     db.session.commit()
     flash(f"Claim {claim.status.lower()}.", "success")
     return redirect(url_for("admin"))

@@ -12,3 +12,6 @@ The app uses CSRF protection, secure session cookies, login throttling, security
 input length validation, safer redirects, and restricted image uploads.
 
 New feature: pickup_location is added automatically to existing databases when the app starts.
+
+
+Updated claim workflow: submitting a claim sets Claim in Progress; admin approval sets Claimed; rejection returns the item to Open and restores Claim item.

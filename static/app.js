@@ -1,0 +1,1 @@
+const m=document.getElementById("menu"),l=document.getElementById("links");if(m)m.onclick=()=>l.classList.toggle("show");setTimeout(()=>document.querySelectorAll(".toast").forEach(x=>x.remove()),4000);

@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: campusfind
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CAMPUSFIND_ADMIN_USERNAME
+        sync: false
+      - key: CAMPUSFIND_ADMIN_PASSWORD
+        sync: false
+      - key: COOKIE_SECURE
+        value: "1"

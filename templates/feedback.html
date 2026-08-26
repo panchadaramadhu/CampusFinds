@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% block content %}
+<section class="hero" style="padding-bottom:20px">
+  <div>
+    <b>YOUR VOICE MATTERS</b>
+    <h1>Help us improve <em>CampusFind.</em></h1>
+    <p>Tell us what worked well and what we can make better.</p>
+  </div>
+  <div class="orb">💬</div>
+</section>
+<div class="formbox">
+  <div class="feedback-summary">
+    <div><strong>{{avg}}</strong><small>Average rating</small></div>
+    <div><strong>{{count}}</strong><small>Feedback received</small></div>
+  </div>
+  <form method="post">
+    <label>Your Name <span class="optional">(optional)</span></label>
+    <input name="name" placeholder="Your name">
+    <label>Email <span class="optional">(optional)</span></label>
+    <input type="email" name="email" placeholder="you@example.com">
+    <label>Rating</label>
+    <div class="rating">
+      {% for n in range(1,6) %}
+      <label><input type="radio" name="rating" value="{{n}}" {% if n==5 %}checked{% endif %}><span>{{n}} ★</span></label>
+      {% endfor %}
+    </div>
+    <label>Your Feedback</label>
+    <textarea name="message" rows="6" maxlength="1000" required placeholder="What did you like? What should we improve?"></textarea>
+    <button class="btn" type="submit">Send Feedback</button>
+  </form>
+</div>
+{% endblock %}

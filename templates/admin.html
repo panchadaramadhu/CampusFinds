@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+  <div><b>ADMIN PORTAL</b><h1>Claim Verification</h1><p>Signed in as <strong>{{session.get("admin_username")}}</strong></p></div>
+  <a class="btn" href="/admin/logout">Logout</a>
+</div>
+{% for c in claims %}
+<article class="claim"><div><small>{{c.title}}</small><h3>{{c.student_name}} · {{c.roll_number}}</h3><p>{{c.proof}}</p><b>{{c.status}}</b></div>
+{% if c.status=="Pending" %}<div><form method="post" action="/admin/{{c.id}}/approve"><button class="btn">Approve</button></form><form method="post" action="/admin/{{c.id}}/reject"><button class="reject">Reject</button></form></div>{% endif %}</article>
+{% else %}<div class="empty">No claims yet.</div>{% endfor %}
+<section style="margin-top:48px">
+  <b>USER FEEDBACK</b><h2>Feedback & ratings</h2>
+  {% for f in feedback %}
+  <article class="claim">
+    <div>
+      <small>{{f.created_at}} · {{f.email or "No email provided"}}</small>
+      <h3>{{f.name}} · {{f.rating}} ★</h3>
+      <p>{{f.message}}</p>
+    </div>
+  </article>
+  {% else %}<div class="empty">No feedback yet.</div>{% endfor %}
+</section>
+{% endblock %}

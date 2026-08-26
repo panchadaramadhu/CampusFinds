@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block content %}
+<section class="hero" style="max-width:720px;margin:auto">
+  <div style="width:100%">
+    <b>ADMIN PORTAL</b>
+    <h1>Administrator<br><em>Sign in.</em></h1>
+    <p>Only authorized administrators can access claim verification and administration tools.</p>
+    <form method="post" style="margin-top:28px;display:grid;gap:14px">
+      <input type="hidden" name="next" value="{{next}}">
+      <label>Admin username</label>
+      <input name="username" autocomplete="username" required placeholder="Enter admin username">
+      <label>Admin password</label>
+      <input type="password" name="password" autocomplete="current-password" required placeholder="Enter admin password">
+      <button class="btn" type="submit">Sign in to Admin Portal</button>
+    </form>
+  </div>
+  <div class="orb">🔐</div>
+</section>
+{% endblock %}

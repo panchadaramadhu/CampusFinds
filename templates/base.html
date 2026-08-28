@@ -29,15 +29,14 @@
       </div>
     </header>
     <main class="dashboard-main">
-      {% with m=get_flashed_messages(with_categories=true) %}{% for t,x in m %}<div class="toast {{t}}" role="status">{{x}}</div>{% endfor %}{% endwith %}
-      {% block content %}{% endblock %}
-    </main>
-  </section>
-</div>
 {% else %}
 <main class="auth-main">
-{% with m=get_flashed_messages(with_categories=true) %}{% for t,x in m %}<div class="toast {{t}}" role="status">{{x}}</div>{% endfor %}{% endwith %}
-{% block content %}{% endblock %}
+{% endif %}
+  {% with m=get_flashed_messages(with_categories=true) %}{% for t,x in m %}<div class="toast {{t}}" role="status">{{x}}</div>{% endfor %}{% endwith %}
+  {% block content %}{% endblock %}
 </main>
+{% if session.get("user_id") %}
+  </section>
+</div>
 {% endif %}
 </body></html>

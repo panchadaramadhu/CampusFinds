@@ -1,14 +1,43 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Campus lost and found made simple.">
+<meta name="description" content="CampusFind - secure campus lost and found.">
 <title>{% block title %}CampusFind{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head><body>
-<nav><a class="logo" href="{{ url_for('home') }}">◈ Campus<span>Find</span></a>
-<button id="menu" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
-<div id="links"><a href="{{ url_for('home') }}">Explore</a><a href="{{ url_for('report') }}">Report Item</a><a href="{{ url_for('feedback') }}">Feedback</a>{% if session.get("user_id") %}<a href="{{ url_for('my_reports') }}">My Reports</a><form method="post" action="{{ url_for('user_logout') }}" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Logout</button></form>{% else %}<a href="{{ url_for('user_login') }}">Login</a><a href="{{ url_for('user_register') }}">Register</a>{% endif %}<a href="{{ url_for('admin') }}">Admin</a></div></nav>
-<main>{% with m=get_flashed_messages(with_categories=true) %}{% for t,x in m %}<div class="toast {{t}}" role="status">{{x}}</div>{% endfor %}{% endwith %}{% block content %}{% endblock %}</main>
-<footer>CampusFind <span>•</span> Helping campus items find their way home.</footer>
+{% if session.get("user_id") %}
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark">⌕</span><span><strong>CampusFind</strong><small>Lost &amp; Found</small></span></a>
+    <nav class="side-nav">
+      <a class="{% if request.endpoint=='home' %}active{% endif %}" href="{{ url_for('home') }}"><span>⌂</span> Home</a>
+      <a class="{% if request.endpoint=='report' %}active{% endif %}" href="{{ url_for('report') }}"><span>♧</span> Report Item</a>
+      <a class="{% if request.endpoint=='my_reports' %}active{% endif %}" href="{{ url_for('my_reports') }}"><span>▧</span> My Reports</a>
+      <a href="{{ url_for('home') }}#discoveries"><span>⌕</span> Browse Items</a>
+      <a class="{% if request.endpoint=='feedback' %}active{% endif %}" href="{{ url_for('feedback') }}"><span>✉</span> Feedback</a>
+    </nav>
+    <div class="safe-card"><div class="shield">✓</div><strong>Together we keep<br>our campus safe.</strong><p>If you find something,<br>report it!</p></div>
+  </aside>
+  <section class="page-area">
+    <header class="topbar">
+      <button class="mobile-menu" id="menu" type="button" aria-label="Toggle menu">☰</button>
+      <form class="top-search" action="{{ url_for('home') }}" method="get"><span>⌕</span><input name="q" value="{{ q|default('') }}" placeholder="Search for lost &amp; found items..."></form>
+      <div class="top-actions">
+        <div class="user-chip"><span class="avatar">{{ session.get('user_name','U')[:1]|upper }}</span><span>{{ session.get('user_name','User') }}</span><span class="chev">⌄</span></div>
+        <form method="post" action="{{ url_for('user_logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="logout-btn" type="submit">⇥ <span>Logout</span></button></form>
+      </div>
+    </header>
+    <main class="dashboard-main">
+      {% with m=get_flashed_messages(with_categories=true) %}{% for t,x in m %}<div class="toast {{t}}" role="status">{{x}}</div>{% endfor %}{% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </section>
+</div>
+{% else %}
+<main class="auth-main">
+{% with m=get_flashed_messages(with_categories=true) %}{% for t,x in m %}<div class="toast {{t}}" role="status">{{x}}</div>{% endfor %}{% endwith %}
+{% block content %}{% endblock %}
+</main>
+{% endif %}
 </body></html>

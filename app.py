@@ -181,6 +181,7 @@ def clean(value, limit):
 
 
 @app.route("/")
+@user_required
 def home():
     q = clean(request.args.get("q"), 100)
     kind = clean(request.args.get("kind"), 20)
@@ -198,6 +199,7 @@ def home():
 
 
 @app.route("/report", methods=["GET", "POST"])
+@user_required
 def report():
     if request.method == "POST":
         kind = clean(request.form.get("kind"), 20)
@@ -238,6 +240,7 @@ def report():
 
 
 @app.route("/feedback", methods=["GET", "POST"])
+@user_required
 def feedback():
     if request.method == "POST":
         name = clean(request.form.get("name"), 150) or "Anonymous"
@@ -287,6 +290,10 @@ def user_register():
 
 @app.route("/user/login", methods=["GET","POST"])
 def user_login():
+    if session.get("user_id"):
+        return redirect(url_for("home"))
+    if session.get("admin_authenticated"):
+        return redirect(url_for("admin"))
     if request.method == "POST":
         u=User.query.filter_by(email=clean(request.form.get("email"),200).lower()).first(); password=request.form.get("password","")
         if u and check_password_hash(u.password_hash,password): session["user_id"]=u.id; session["user_name"]=u.name; return redirect(safe_next(request.form.get("next")) or url_for("my_reports"))
@@ -294,8 +301,9 @@ def user_login():
     return render_template("user_auth.html", mode="login", next=safe_next(request.values.get("next","")))
 
 @app.post("/user/logout")
+@user_required
 def user_logout():
-    session.pop("user_id",None); session.pop("user_name",None); flash("Logged out.","success"); return redirect(url_for("home"))
+    session.pop("user_id",None); session.pop("user_name",None); flash("Logged out.","success"); return redirect(url_for("user_login"))
 
 @app.get("/my-reports")
 @user_required
@@ -373,6 +381,8 @@ def action(id, action):
 
 @app.route("/uploads/<int:id>")
 def uploads(id):
+    if not session.get("user_id") and not session.get("admin_authenticated"):
+        return redirect(url_for("user_login", next=request.path))
     item = db.session.get(Item, id)
     if not item or not item.photo_data:
         return ("", 404)

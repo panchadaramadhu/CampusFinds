@@ -50,6 +50,8 @@ class User(db.Model):
     email = db.Column(db.String(200), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    profile_photo = db.Column(db.LargeBinary, nullable=True)
+    profile_photo_mime = db.Column(db.String(50), nullable=True)
 
 
 class Item(db.Model):
@@ -102,6 +104,14 @@ with app.app_context():
         db.session.commit()
     except Exception:
         db.session.rollback()
+    for sql in [
+        "ALTER TABLE users ADD COLUMN profile_photo BYTEA",
+        "ALTER TABLE users ADD COLUMN profile_photo_mime VARCHAR(50)"
+    ]:
+        try:
+            db.session.execute(db.text(sql)); db.session.commit()
+        except Exception:
+            db.session.rollback()
 
 
 def csrf_token():
@@ -299,6 +309,40 @@ def user_login():
         if u and check_password_hash(u.password_hash,password): session["user_id"]=u.id; session["user_name"]=u.name; return redirect(safe_next(request.form.get("next")) or url_for("my_reports"))
         flash("Invalid email or password.","error")
     return render_template("user_auth.html", mode="login", next=safe_next(request.values.get("next","")))
+
+
+@app.route("/profile", methods=["GET", "POST"])
+@user_required
+def profile():
+    user = db.session.get(User, session["user_id"])
+    if request.method == "POST":
+        f = request.files.get("profile_photo")
+        if not f or not f.filename:
+            flash("Please choose a profile picture.", "error")
+            return redirect(url_for("profile"))
+        ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+        if ext not in ALLOWED or not (f.mimetype or "").startswith("image/"):
+            flash("Use PNG, JPG, JPEG or WEBP only.", "error")
+            return redirect(url_for("profile"))
+        data = f.read()
+        if len(data) > 5 * 1024 * 1024:
+            flash("Profile picture must be 5 MB or smaller.", "error")
+            return redirect(url_for("profile"))
+        user.profile_photo = data
+        user.profile_photo_mime = f.mimetype
+        db.session.commit()
+        flash("Profile picture updated.", "success")
+        return redirect(url_for("profile"))
+    return render_template("profile.html", user=user)
+
+
+@app.get("/profile/photo/<int:user_id>")
+@user_required
+def profile_photo(user_id):
+    user = db.session.get(User, user_id)
+    if not user or not user.profile_photo:
+        abort(404)
+    return send_file(io.BytesIO(user.profile_photo), mimetype=user.profile_photo_mime or "image/jpeg", max_age=3600)
 
 @app.post("/user/logout")
 @user_required

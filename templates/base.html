@@ -24,7 +24,7 @@
       <button class="mobile-menu" id="menu" type="button" aria-label="Toggle menu">☰</button>
       <form class="top-search" action="{{ url_for('home') }}" method="get"><span>⌕</span><input name="q" value="{{ q|default('') }}" placeholder="Search for lost &amp; found items..."></form>
       <div class="top-actions">
-        <div class="user-chip"><span class="avatar">{{ session.get('user_name','U')[:1]|upper }}</span><span>{{ session.get('user_name','User') }}</span><span class="chev">⌄</span></div>
+        <a class="user-chip" href="{{ url_for('profile') }}" aria-label="Open profile">{% if session.get("user_id") %}<img class="avatar-img" src="{{ url_for('profile_photo', user_id=session.get('user_id')) }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';"><span class="avatar fallback-avatar">{{ session.get('user_name','U')[:1]|upper }}</span>{% endif %}<span>{{ session.get('user_name','User') }}</span><span class="chev">⌄</span></a>
         <form method="post" action="{{ url_for('user_logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="logout-btn" type="submit">⇥ <span>Logout</span></button></form>
       </div>
     </header>

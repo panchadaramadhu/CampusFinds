@@ -5,8 +5,21 @@
 </section>
 
 <section class="summary-grid">
-  <a class="summary lost-summary" href="{{ url_for('home',kind='Lost') }}"><span class="summary-tag">Lost</span><div class="summary-icon">▣</div><h2>{{lost}} Items Lost</h2><p>View all lost items reported</p><button>View Lost Items&nbsp; →</button></a>
-  <a class="summary found-summary" href="{{ url_for('home',kind='Found') }}"><span class="summary-tag">Found</span><div class="summary-icon">▣</div><h2>{{found}} Items Found</h2><p>View all found items reported</p><button>View Found Items&nbsp; →</button></a>
+  <article class="summary lost-summary">
+    <span class="summary-tag">Lost</span><div class="summary-icon">▣</div>
+    <h2>{{lost}} Items Lost</h2><p>View all lost items reported</p>
+    <div class="summary-actions">
+      <a class="summary-btn primary" href="{{ url_for('home', kind='Lost') }}#discoveries">View Lost Items <span>→</span></a>
+      <a class="summary-btn secondary found-switch" href="{{ url_for('report', kind='Found') }}">Found an item? <span>＋</span></a>
+    </div>
+  </article>
+  <article class="summary found-summary">
+    <span class="summary-tag">Found</span><div class="summary-icon">▣</div>
+    <h2>{{found}} Items Found</h2><p>View all found items reported</p>
+    <div class="summary-actions">
+      <a class="summary-btn primary" href="{{ url_for('home', kind='Found') }}#discoveries">View Found Items <span>→</span></a>
+    </div>
+  </article>
 </section>
 
 <section class="how-card">

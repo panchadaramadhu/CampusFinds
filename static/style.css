@@ -6,3 +6,14 @@
 @media(max-width:760px){.sidebar{transform:translateX(-100%);transition:.25s;width:230px}.sidebar.show{transform:none;box-shadow:20px 0 50px #0008}.page-area{margin-left:0;width:100%}.topbar{padding:0 14px}.mobile-menu{display:block;border:0;background:transparent;color:#fff;font-size:24px}.top-search{width:auto;flex:1}.user-chip span:not(.avatar),.logout-btn span{display:none}.logout-btn{min-width:48px;width:48px;padding:0}.dashboard-main{padding:25px 15px}.dash-hero{align-items:start}.quick-actions{display:none}.summary-grid{grid-template-columns:1fr}.summary{min-height:250px}.how-card{overflow:auto}.steps{min-width:650px}.item-row{grid-template-columns:repeat(2,1fr)}.cta-banner{flex-wrap:wrap}.cta-people{min-width:auto}.cta-button{margin-left:auto}.formpage{grid-template-columns:1fr;gap:15px;margin-top:20px}.auth-main{padding:20px}.claim{flex-direction:column}.safe-card{display:none}}
 @media(max-width:430px){.item-row{grid-template-columns:1fr}.cta-arrow{display:none}.cta-banner{padding:17px}.cta-button{width:100%;text-align:center}.top-search{width:100%}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* Working dashboard summary actions */
+.summary{position:relative;display:flex;flex-direction:column}
+.summary-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:14px}
+.summary-btn{display:inline-flex!important;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:0 16px;border-radius:14px;text-decoration:none!important;font-weight:700;transition:transform .2s ease,box-shadow .2s ease,filter .2s ease}
+.summary-btn:hover{transform:translateY(-2px);filter:brightness(1.12)}
+.lost-summary .summary-btn.primary{border:1px solid rgba(255,82,123,.6);box-shadow:0 0 20px rgba(255,50,100,.12)}
+.found-summary .summary-btn.primary{border:1px solid rgba(78,220,149,.55);box-shadow:0 0 20px rgba(40,210,130,.12)}
+.summary-btn.secondary{border:1px solid rgba(139,110,255,.42);background:rgba(130,91,255,.12);font-size:.9rem}
+.lost-summary .found-switch{color:#9eecc8;border-color:rgba(70,220,150,.48);background:rgba(40,190,120,.1)}
+@media(max-width:620px){.summary-actions{flex-direction:column}.summary-btn{width:100%}}

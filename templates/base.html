@@ -6,6 +6,21 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head><body>
+<div class="loading-screen" id="loadingScreen" aria-label="Loading CampusFind">
+  <div class="loader-scene">
+    <div class="runner-book">
+      <div class="book-cover"><span></span><i></i></div>
+      <div class="book-pages"></div>
+      <div class="book-face"><b></b><b></b><em></em></div>
+      <div class="leg leg-one"></div><div class="leg leg-two"></div>
+    </div>
+    <div class="speed-lines"><i></i><i></i><i></i></div>
+  </div>
+  <strong class="loader-title">CampusFind</strong>
+  <span class="loader-text">Finding what matters...</span>
+  <div class="loader-bar"><span></span></div>
+</div>
+<div class="page-progress" id="pageProgress"></div>
 {% if session.get("user_id") %}
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
@@ -28,7 +43,7 @@
         <form method="post" action="{{ url_for('user_logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="logout-btn" type="submit">⇥ <span>Logout</span></button></form>
       </div>
     </header>
-    <main class="dashboard-main">
+    <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div><main class="dashboard-main">
 {% else %}
 <main class="auth-main">
 {% endif %}

@@ -68,6 +68,8 @@ class Item(db.Model):
     status = db.Column(db.String(30), default="Open", nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     reporter_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    # If this is a Found report created from a Lost report, keep the connection.
+    linked_lost_id = db.Column(db.Integer, db.ForeignKey("items.id"), nullable=True)
     reporter = db.relationship("User", foreign_keys=[reporter_id])
 
 
@@ -98,12 +100,16 @@ class Feedback(db.Model):
 
 with app.app_context():
     db.create_all()
-    # Existing databases need the new pickup_location column too.
-    try:
-        db.session.execute(db.text("ALTER TABLE items ADD COLUMN pickup_location VARCHAR(200)"))
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
+    # Existing databases need these newer columns too.
+    for sql in [
+        "ALTER TABLE items ADD COLUMN pickup_location VARCHAR(200)",
+        "ALTER TABLE items ADD COLUMN linked_lost_id INTEGER"
+    ]:
+        try:
+            db.session.execute(db.text(sql))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
     for sql in [
         "ALTER TABLE users ADD COLUMN profile_photo BYTEA",
         "ALTER TABLE users ADD COLUMN profile_photo_mime VARCHAR(50)"
@@ -247,6 +253,63 @@ def report():
         flash("Item posted successfully!", "success")
         return redirect(url_for("home"))
     return render_template("report.html", selected_kind=clean(request.args.get("kind"), 20))
+
+
+@app.route("/report-found/<int:lost_id>", methods=["GET", "POST"])
+@user_required
+def report_found(lost_id):
+    """Let a user report a lost item as found directly from its card."""
+    lost_item = db.session.get(Item, lost_id)
+    if not lost_item or lost_item.kind != "Lost":
+        flash("That lost report could not be found.", "error")
+        return redirect(url_for("home"))
+
+    if request.method == "POST":
+        found_location = clean(request.form.get("found_location"), 200)
+        found_description = clean(request.form.get("description"), 2000)
+        pickup_location = clean(request.form.get("pickup_location"), 200)
+
+        if not found_location or not found_description:
+            flash("Please add where you found it and a short description.", "error")
+            return render_template("report_found.html", lost_item=lost_item)
+
+        f = request.files.get("photo")
+        photo_data = photo_mime = None
+        if f and f.filename:
+            ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+            if ext not in ALLOWED:
+                flash("Use PNG, JPG, JPEG or WEBP only.", "error")
+                return render_template("report_found.html", lost_item=lost_item)
+            photo_data = f.read()
+            if len(photo_data) > 5 * 1024 * 1024:
+                flash("Photo must be 5 MB or smaller.", "error")
+                return render_template("report_found.html", lost_item=lost_item)
+            if not (f.mimetype or "").startswith("image/"):
+                flash("Please upload a valid image.", "error")
+                return render_template("report_found.html", lost_item=lost_item)
+            photo_mime = f.mimetype
+
+        found_item = Item(
+            title=lost_item.title,
+            kind="Found",
+            category=lost_item.category,
+            location=found_location,
+            pickup_location=pickup_location or None,
+            description=found_description,
+            photo_data=photo_data,
+            photo_mime=photo_mime,
+            reporter_id=session.get("user_id"),
+            linked_lost_id=lost_item.id
+        )
+        db.session.add(found_item)
+        # Keep the lost report visible, but make it clear that someone has reported
+        # a possible match so users do not submit the same found report repeatedly.
+        lost_item.status = "Found Reported"
+        db.session.commit()
+        flash("Great! Your found report is now visible to the person who lost it.", "success")
+        return redirect(url_for("home"))
+
+    return render_template("report_found.html", lost_item=lost_item)
 
 
 @app.route("/feedback", methods=["GET", "POST"])

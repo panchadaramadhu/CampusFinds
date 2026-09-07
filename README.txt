@@ -15,3 +15,6 @@ New feature: pickup_location is added automatically to existing databases when t
 
 
 Updated claim workflow: submitting a claim sets Claim in Progress; admin approval sets Claimed; rejection returns the item to Open and restores Claim item.
+
+
+NEW: Lost item cards now have an 'I Found This Item' action at the bottom. It opens a friendly pre-linked found-report form and connects the found report to the original lost report.

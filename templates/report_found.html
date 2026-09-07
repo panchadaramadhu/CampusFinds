@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="formpage reveal">
+  <div>
+    <b>FOUND SOMETHING?</b>
+    <h1>Help return it.</h1>
+    <p>You are reporting that this lost item may have been found. Add only the details needed to help the owner identify it.</p>
+
+    <div class="match-card">
+      <span class="badge lost">LOST ITEM</span>
+      <h2>{{ lost_item.title }}</h2>
+      <p><strong>Category:</strong> {{ lost_item.category }}</p>
+      <p><strong>Original report:</strong> {{ lost_item.location }}</p>
+      <div class="tip-card">💡 Do not post passwords, OTPs, account numbers, or other private information.</div>
+    </div>
+  </div>
+
+  <form class="form" method="post" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-heading">
+      <h2>Report this item as found</h2>
+      <p>The owner can see your report and use the normal claim process.</p>
+    </div>
+
+    <label>Where did you find it?
+      <input name="found_location" required maxlength="200" placeholder="Example: Library, Block A">
+    </label>
+
+    <label>What did you find?
+      <textarea name="description" required maxlength="2000" placeholder="Describe the item and any safe identifying details..."></textarea>
+    </label>
+
+    <label>Pickup Location <span class="optional">(recommended)</span>
+      <input name="pickup_location" maxlength="200" placeholder="Example: Security Desk, Main Gate">
+    </label>
+
+    <label>Photo <span class="optional">(optional · max 5 MB)</span>
+      <input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp">
+    </label>
+
+    <div class="form-actions">
+      <a class="cancel-btn" href="{{url_for('home')}}">Cancel</a>
+      <button class="btn" type="submit">Submit Found Report ✓</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,51 +1,68 @@
 {% extends "base.html" %}{% block content %}
-<section class="dash-hero">
-  <div class="dash-title"><b>RECENT REPORTS</b><h1>Discoveries around <span>campus</span></h1><i></i></div>
-  <div class="quick-actions"><a href="{{ url_for('report',kind='Lost') }}" class="quick lost-quick"><span>Lost</span><strong>Report something<br>you lost</strong><em>＋</em></a><a href="{{ url_for('report',kind='Found') }}" class="quick found-quick"><span>Found</span><strong>Report something<br>you found</strong><em>＋</em></a></div>
-</section>
-
-<section class="summary-grid">
-  <article class="summary lost-summary">
-    <span class="summary-tag">Lost</span><div class="summary-icon">▣</div>
-    <h2>{{lost}} Items Lost</h2><p>View all lost items reported</p>
-    <div class="summary-actions">
-      <a class="summary-btn primary" href="{{ url_for('home', kind='Lost') }}#discoveries">View Lost Items <span>→</span></a>
-      <a class="summary-btn secondary found-switch" href="{{ url_for('report', kind='Lost') }}">Lost something? <span>＋</span></a>
+<section class="hero-v2 reveal">
+  <div class="hero-copy">
+    <div class="eyebrow"><span class="pulse"></span> LIVE CAMPUS BOARD</div>
+    <h1>Lost something?<br><span>Let’s bring it home.</span></h1>
+    <p>One trusted place for students to report, discover and safely reclaim lost belongings.</p>
+    <div class="hero-actions">
+      <a class="hero-primary" href="{{ url_for('report',kind='Lost') }}"><span>＋</span> Report lost item</a>
+      <a class="hero-secondary" href="{{ url_for('report',kind='Found') }}">I found something <span>→</span></a>
     </div>
-  </article>
-  <article class="summary found-summary">
-    <span class="summary-tag">Found</span><div class="summary-icon">▣</div>
-    <h2>{{found}} Items Found</h2><p>View all found items reported</p>
-    <div class="summary-actions">
-      <a class="summary-btn primary" href="{{ url_for('home', kind='Found') }}#discoveries">View Found Items <span>→</span></a>
-      <a class="summary-btn secondary" href="{{ url_for('report', kind='Found') }}">Found an item? <span>＋</span></a>
-    </div>
-  </article>
+  </div>
+  <div class="hero-visual" aria-hidden="true">
+    <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+    <div class="float-card card-one"><b>✓</b><span>Claim verified</span></div>
+    <div class="float-card card-two"><span class="tiny-dot"></span><span>New report</span></div>
+    <div class="hero-box"><div class="box-glow"></div><div class="box-icon">⌕</div><strong>Find it.<br>Return it.</strong><small>CampusFind</small></div>
+  </div>
 </section>
 
-<section class="how-card">
-<h2>How it works</h2><div class="steps"><div><span>✎</span><b>Report</b><small>Report lost or<br>found items</small></div><i>··········→</i><div><span>◉</span><b>Discover</b><small>Others can view<br>and identify</small></div><i>··········→</i><div><span>♙</span><b>Claim</b><small>Raise a claim for<br>your item</small></div><i>··········→</i><div><span>✓</span><b>Approve &amp; Pickup</b><small>Admin approves &amp; you<br>pickup your item</small></div></div>
+<section class="stat-strip reveal">
+  <div><span class="stat-icon lost">↗</span><div><strong>{{lost}}</strong><small>Lost reports</small></div></div>
+  <div><span class="stat-icon found">✓</span><div><strong>{{found}}</strong><small>Found reports</small></div></div>
+  <div><span class="stat-icon community">♡</span><div><strong>{{feedback_count}}</strong><small>Community feedback</small></div></div>
+  <div class="trust-note"><span>✦</span><div><b>Built for campus</b><small>Simple • safe • student-friendly</small></div></div>
 </section>
 
-<section id="discoveries" class="items-section">
-<div class="items-head"><div><h2>{% if kind %}{{kind}}{% else %}Recent{% endif %} Items</h2><p>{% if q %}Search results for “{{q}}”{% else %}Latest reports from around campus{% endif %}</p></div><a href="{{ url_for('home') }}">View all</a></div>
-<div class="item-row">{% for x in items[:10] %}<article class="item-card reveal">
-  <div class="item-image">{% if x.photo_data %}<img src="{{ url_for('uploads', id=x.id) }}" alt="{{x.title}}">{% else %}<div class="placeholder">📦</div>{% endif %}<span class="badge {{x.kind|lower}}">{{x.kind}}</span></div>
-  <div class="item-info"><h3>{{x.title}}</h3><p>{{x.location}}</p><small>◷ {{x.created_at.strftime('%d %b') if x.created_at else 'Recently' }}</small>
-  {% if x.kind=="Lost" and x.status=="Open" %}
-    <a class="found-action" href="{{url_for('report_found',lost_id=x.id)}}">🎉 I Found This Item <span>→</span></a>
-  {% elif x.kind=="Lost" and x.status=="Found Reported" %}
-    <span class="status found-reported">✓ Found report submitted</span>
-  {% elif x.kind=="Found" and x.status=="Open" %}
-    <a class="mini-claim" href="{{url_for('claim',id=x.id)}}">Claim item →</a>
-  {% elif x.status=="Claim in Progress" %}
-    <span class="status progress">Claim in progress</span>
-  {% elif x.status=="Claimed" %}
-    <span class="status claimed">Claimed ✓</span>
-  {% endif %}</div>
-</article>{% else %}<div class="empty">No items found. <a href="{{url_for('report')}}">Report an item</a> to get started.</div>{% endfor %}</div>
+<section class="section-v2 reveal">
+  <div class="section-title"><div><div class="eyebrow muted">QUICK START</div><h2>What happened?</h2></div><a href="{{url_for('home')}}#discoveries">Browse all <span>→</span></a></div>
+  <div class="choice-grid">
+    <a class="choice-card lost-choice" href="{{ url_for('report',kind='Lost') }}"><span class="choice-number">01</span><div class="choice-icon">↗</div><h3>I lost something</h3><p>Tell the campus where and when you last saw it.</p><span class="choice-link">Create lost report →</span></a>
+    <a class="choice-card found-choice" href="{{ url_for('report',kind='Found') }}"><span class="choice-number">02</span><div class="choice-icon">✓</div><h3>I found something</h3><p>Help its owner by adding a clear found report.</p><span class="choice-link">Create found report →</span></a>
+  </div>
 </section>
 
-<section class="cta-banner"><div class="cta-people">👩‍🎓 <span>🤳</span></div><div><h2>Let's build a better campus together</h2><p>Report lost or found items and help others.</p></div><a class="cta-button" href="{{url_for('report')}}">Report an Item&nbsp; ＋</a><span class="cta-arrow">›</span></section>
-<footer>© 2026 CampusFind. All rights reserved.</footer>
+<section class="how-v2 reveal">
+  <div class="section-title"><div><div class="eyebrow muted">THE SIMPLE WAY</div><h2>From lost to returned</h2></div></div>
+  <div class="timeline">
+    <div><b>01</b><span>Report</span><small>Add the item and where it was lost or found.</small></div>
+    <i></i><div><b>02</b><span>Discover</span><small>Browse the campus board and spot a match.</small></div>
+    <i></i><div><b>03</b><span>Claim</span><small>Submit proof so the right owner can be verified.</small></div>
+    <i></i><div><b>04</b><span>Return</span><small>Admin approval keeps the handover safe.</small></div>
+  </div>
+</section>
+
+<section id="discoveries" class="section-v2 reveal">
+  <div class="section-title"><div><div class="eyebrow muted">CAMPUS BOARD</div><h2>{% if kind %}{{kind}}{% else %}Recent{% endif %} items</h2><p>{% if q %}Showing matches for “{{q}}”{% else %}The newest reports appear first.{% endif %}</p></div><div class="filter-pills"><a class="{% if not kind %}active{% endif %}" href="{{url_for('home')}}">All</a><a class="{% if kind=='Lost' %}active{% endif %}" href="{{url_for('home',kind='Lost')}}">Lost</a><a class="{% if kind=='Found' %}active{% endif %}" href="{{url_for('home',kind='Found')}}">Found</a></div></div>
+  <div class="item-row item-row-v2">
+  {% for x in items[:12] %}
+    <article class="item-card item-card-v2 reveal">
+      <div class="item-image">
+        {% if x.photo_data %}<img src="{{ url_for('uploads', id=x.id) }}" alt="{{x.title}}">{% else %}<div class="placeholder">📦</div>{% endif %}
+        <span class="badge {{x.kind|lower}}">{{x.kind}}</span>
+      </div>
+      <div class="item-info"><div class="item-meta">{{x.category}} <span>•</span> {{x.created_at.strftime('%d %b') if x.created_at else 'Recently'}}</div><h3>{{x.title}}</h3><p>⌖ {{x.location}}</p>
+      {% if x.kind=="Lost" and x.status=="Open" %}<a class="found-action" href="{{url_for('report_found',lost_id=x.id)}}">✓ I found this <span>→</span></a>
+      {% elif x.kind=="Lost" and x.status=="Found Reported" %}<span class="status found-reported">✓ Found report submitted</span>
+      {% elif x.kind=="Found" and x.status=="Open" %}<a class="mini-claim" href="{{url_for('claim',id=x.id)}}">Claim item →</a>
+      {% elif x.status=="Claim in Progress" %}<span class="status progress">Claim in progress</span>
+      {% elif x.status=="Claimed" %}<span class="status claimed">Claimed ✓</span>{% endif %}
+      </div>
+    </article>
+  {% else %}<div class="empty">No items found yet. <a href="{{url_for('report')}}">Report an item</a> to get started.</div>{% endfor %}
+  </div>
+</section>
+
+<section class="cta-v2 reveal"><div class="cta-symbol">C</div><div><div class="eyebrow">ONE CAMPUS, ONE COMMUNITY</div><h2>Someone is probably looking for it.</h2><p>A 30-second report can turn a lost item into a happy return.</p></div><a href="{{url_for('report')}}">Report an item <span>→</span></a></section>
+<footer>© 2026 CampusFind · Made for campus communities</footer>
 {% endblock %}

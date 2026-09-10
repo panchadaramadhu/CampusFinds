@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}CampusFind — Choose Login{% endblock %}
+{% block content %}
+<section class="entry-page reveal">
+  <div class="entry-brand"><span class="brand-mark">C</span><div><strong>CampusFind</strong><small>Campus lost &amp; found</small></div></div>
+  <div class="entry-copy">
+    <div class="eyebrow"><span class="pulse"></span> SECURE CAMPUS ACCESS</div>
+    <h1>Welcome to<br><span>CampusFind.</span></h1>
+    <p>Choose how you want to enter the campus lost &amp; found application.</p>
+  </div>
+  <div class="login-choice-grid">
+    <a class="login-choice user-choice" href="{{ url_for('user_login') }}">
+      <div class="choice-top"><span class="choice-icon-big">◉</span><span class="choice-arrow">→</span></div>
+      <b>USER LOGIN</b><h2>Student / User</h2>
+      <p>Report lost or found items, browse campus reports, submit claims and track your activity.</p>
+      <span class="choice-cta">Continue as User <span>→</span></span>
+    </a>
+    <a class="login-choice admin-choice" href="{{ url_for('admin_login') }}">
+      <div class="choice-top"><span class="choice-icon-big">🔐</span><span class="choice-arrow">→</span></div>
+      <b>ADMIN LOGIN</b><h2>Administrator</h2>
+      <p>Review claims, manage reports, verify requests and access protected administration tools.</p>
+      <span class="choice-cta">Continue as Admin <span>→</span></span>
+    </a>
+  </div>
+  <div class="entry-note">🔒 Separate protected access &nbsp;•&nbsp; Your account determines the dashboard you can access</div>
+</section>
+{% endblock %}

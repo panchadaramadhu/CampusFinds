@@ -35,8 +35,8 @@ app.config.update(
 
 db = SQLAlchemy(app)
 ALLOWED = {"png", "jpg", "jpeg", "webp"}
-ADMIN_USERNAME = os.environ.get("CAMPUSFIND_ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.environ.get("CAMPUSFIND_ADMIN_PASSWORD", "CampusFind@2026")
+ADMIN_USERNAME = os.environ.get("CAMPUSFIND_ADMIN_USERNAME", "Madhu")
+ADMIN_PASSWORD = os.environ.get("CAMPUSFIND_ADMIN_PASSWORD", "m@dhu12345678")
 ADMIN_PASSWORD_HASH = os.environ.get("CAMPUSFIND_ADMIN_PASSWORD_HASH", "")
 
 # Small in-memory login throttle. This blocks rapid guessing without adding a dependency.
@@ -197,8 +197,11 @@ def clean(value, limit):
 
 
 @app.route("/")
-@user_required
 def home():
+    if not session.get("user_id") and not session.get("admin_authenticated"):
+        return render_template("entry.html")
+    if session.get("admin_authenticated"):
+        return redirect(url_for("admin"))
     q = clean(request.args.get("q"), 100)
     kind = clean(request.args.get("kind"), 20)
     query = Item.query

@@ -3,7 +3,8 @@ CampusFind – Deployment notes
 Environment variables for Render:
 DATABASE_URL=your Supabase PostgreSQL connection URL
 SECRET_KEY=a long random secret
-CAMPUSFIND_ADMIN_USERNAME=your admin username
+CAMPUSFIND_ADMIN_USERNAME=Madhu
+CAMPUSFIND_ADMIN_PASSWORD=m@dhu12345678
 CAMPUSFIND_ADMIN_PASSWORD_HASH=optional Werkzeug password hash (preferred)
 COOKIE_SECURE=1
 

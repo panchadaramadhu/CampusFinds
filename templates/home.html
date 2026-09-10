@@ -52,7 +52,7 @@
         <span class="badge {{x.kind|lower}}">{{x.kind}}</span>
       </div>
       <div class="item-info"><div class="item-meta">{{x.category}} <span>•</span> {{x.created_at.strftime('%d %b') if x.created_at else 'Recently'}}</div><h3>{{x.title}}</h3><p>⌖ {{x.location}}</p>
-      {% if x.kind=="Lost" and x.status=="Open" %}<a class="found-action" href="{{url_for('claim',id=x.id)}}">Claim item <span>→</span></a>
+      {% if x.kind=="Lost" and x.status=="Open" %}<a class="found-action" href="{{url_for('report_found',lost_id=x.id)}}">✓ I found this <span>→</span></a>
       {% elif x.kind=="Lost" and x.status=="Found Reported" %}<span class="status found-reported">✓ Found report submitted</span>
       {% elif x.kind=="Found" and x.status=="Open" %}<a class="mini-claim" href="{{url_for('claim',id=x.id)}}">Claim item →</a>
       {% elif x.status=="Claim in Progress" %}<span class="status progress">Claim in progress</span>

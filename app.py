@@ -81,8 +81,7 @@ class Claim(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     user = db.relationship("User", foreign_keys=[user_id])
     user_confirmed = db.Column(db.Boolean, default=False, nullable=False)
-    roll_number = db.Column(db.String(100), nullable=False)  # legacy field retained for existing databases
-    username = db.Column(db.String(150), nullable=True)
+    roll_number = db.Column(db.String(100), nullable=False)
     proof = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(30), default="Pending", nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
@@ -112,7 +111,6 @@ with app.app_context():
         except Exception:
             db.session.rollback()
     for sql in [
-        "ALTER TABLE claims ADD COLUMN username VARCHAR(150)",
         "ALTER TABLE users ADD COLUMN profile_photo BYTEA",
         "ALTER TABLE users ADD COLUMN profile_photo_mime VARCHAR(50)"
     ]:
@@ -345,24 +343,15 @@ def feedback():
 @user_required
 def claim(id):
     item = db.session.get(Item, id)
-    if not item or item.kind not in {"Found", "Lost"} or item.status != "Open":
-        flash("This item is not available for a new claim or found report.", "error"); return redirect(url_for("home"))
+    if not item or item.kind != "Found" or item.status != "Open":
+        flash("This item is not available for a new claim.", "error"); return redirect(url_for("home"))
     if request.method == "POST":
         user = db.session.get(User, session["user_id"])
         proof = clean(request.form.get("proof"), 2000)
-        if not proof:
-            flash("Please provide the required details.", "error")
-            return redirect(url_for("claim", id=id))
-        username = clean(request.form.get("username"), 150) or clean(user.name, 150)
-        if not username:
-            flash("Please provide your username.", "error")
-            return redirect(url_for("claim", id=id))
-        # Keep the legacy roll_number column populated for compatibility with existing databases.
-        db.session.add(Claim(item_id=id, user_id=user.id, student_name=user.name, username=username, roll_number=username, proof=proof))
-        item.status = "Claim in Progress"
-        db.session.commit()
-        flash("Claim submitted. Waiting for admin approval.", "success")
-        return redirect(url_for("my_reports"))
+        if not proof: flash("Please provide ownership proof.", "error"); return redirect(url_for("claim", id=id))
+        db.session.add(Claim(item_id=id, user_id=user.id, student_name=user.name, roll_number=clean(request.form.get("roll_number"),100), proof=proof))
+        item.status = "Claim in Progress"; db.session.commit()
+        flash("Claim submitted. Waiting for admin approval.", "success"); return redirect(url_for("my_reports"))
     return render_template("claim.html", item=item)
 
 @app.route("/user/register", methods=["GET","POST"])

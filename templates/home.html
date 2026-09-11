@@ -44,6 +44,12 @@
 
 <section id="discoveries" class="section-v2 reveal">
   <div class="section-title"><div><div class="eyebrow muted">CAMPUS BOARD</div><h2>{% if kind %}{{kind}}{% else %}Recent{% endif %} items</h2><p>{% if q %}Showing matches for “{{q}}”{% else %}The newest reports appear first.{% endif %}</p></div><div class="filter-pills"><a class="{% if not kind %}active{% endif %}" href="{{url_for('home')}}">All</a><a class="{% if kind=='Lost' %}active{% endif %}" href="{{url_for('home',kind='Lost')}}">Lost</a><a class="{% if kind=='Found' %}active{% endif %}" href="{{url_for('home',kind='Found')}}">Found</a></div></div>
+  <form class="board-filters" action="{{url_for('home')}}#discoveries" method="get">
+    <input name="q" value="{{q}}" placeholder="Search by item, place or description…">
+    <select name="category"><option value="">All categories</option>{% for c in categories %}<option value="{{c}}" {% if category==c %}selected{% endif %}>{{c}}</option>{% endfor %}</select>
+    <select name="status"><option value="">All statuses</option><option value="Open" {% if status=='Open' %}selected{% endif %}>Open</option><option value="Found Reported" {% if status=='Found Reported' %}selected{% endif %}>Found reported</option><option value="Claim in Progress" {% if status=='Claim in Progress' %}selected{% endif %}>Claim in progress</option><option value="Claimed" {% if status=='Claimed' %}selected{% endif %}>Claimed</option></select>
+    {% if kind %}<input type="hidden" name="kind" value="{{kind}}">{% endif %}<button class="btn" type="submit">Filter</button>{% if q or category or status %}<a class="clear-filter" href="{{url_for('home')}}#discoveries">Clear</a>{% endif %}
+  </form>
   <div class="item-row item-row-v2">
   {% for x in items[:12] %}
     <article class="item-card item-card-v2 reveal">
@@ -54,7 +60,7 @@
       <div class="item-info"><div class="item-meta">{{x.category}} <span>•</span> {{x.created_at.strftime('%d %b') if x.created_at else 'Recently'}}</div><h3>{{x.title}}</h3><p>⌖ {{x.location}}</p>
       {% if x.kind=="Lost" and x.status=="Open" %}<a class="found-action" href="{{url_for('report_found',lost_id=x.id)}}">✓ I found this <span>→</span></a>
       {% elif x.kind=="Lost" and x.status=="Found Reported" %}<span class="status found-reported">✓ Found report submitted</span>
-      {% elif x.kind=="Found" and x.status=="Open" %}<a class="mini-claim" href="{{url_for('claim',id=x.id)}}">Claim item →</a>
+      {% elif x.kind=="Found" and x.status=="Open" and x.reporter_id != session.get('user_id') %}<a class="mini-claim" href="{{url_for('claim',id=x.id)}}">Claim item →</a>{% elif x.kind=="Found" and x.status=="Open" %}<span class="status muted-status">Your found report</span>
       {% elif x.status=="Claim in Progress" %}<span class="status progress">Claim in progress</span>
       {% elif x.status=="Claimed" %}<span class="status claimed">Claimed ✓</span>{% endif %}
       </div>

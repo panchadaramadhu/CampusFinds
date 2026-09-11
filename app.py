@@ -30,7 +30,7 @@ app.config.update(
     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=os.environ.get("COOKIE_SECURE", "1") == "1",
+    SESSION_COOKIE_SECURE=os.environ.get("COOKIE_SECURE", "0") == "1",
 )
 
 db = SQLAlchemy(app)
@@ -86,6 +86,18 @@ class Claim(db.Model):
     status = db.Column(db.String(30), default="Pending", nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     item = db.relationship("Item", backref=db.backref("claims", lazy=True))
+
+
+class Notification(db.Model):
+    __tablename__ = "notifications"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    link = db.Column(db.String(300), nullable=True)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    user = db.relationship("User", foreign_keys=[user_id])
 
 
 class Feedback(db.Model):
@@ -196,6 +208,11 @@ def clean(value, limit):
     return (value or "").strip()[:limit]
 
 
+def notify(user_id, title, message, link=None):
+    if user_id:
+        db.session.add(Notification(user_id=user_id, title=title, message=message, link=link))
+
+
 @app.route("/")
 def home():
     if not session.get("user_id") and not session.get("admin_authenticated"):
@@ -204,17 +221,25 @@ def home():
         return redirect(url_for("admin"))
     q = clean(request.args.get("q"), 100)
     kind = clean(request.args.get("kind"), 20)
+    category = clean(request.args.get("category"), 80)
+    status = clean(request.args.get("status"), 30)
     query = Item.query
     if q:
         pattern = f"%{q}%"
         query = query.filter(db.or_(Item.title.ilike(pattern), Item.description.ilike(pattern), Item.location.ilike(pattern), Item.pickup_location.ilike(pattern)))
     if kind in ["Lost", "Found"]:
         query = query.filter_by(kind=kind)
+    if category:
+        query = query.filter_by(category=category)
+    if status in ["Open", "Found Reported", "Claim in Progress", "Claimed"]:
+        query = query.filter_by(status=status)
     items = query.order_by(Item.id.desc()).all()
+    categories = [x[0] for x in db.session.query(Item.category).distinct().order_by(Item.category).all() if x[0]]
     lost = Item.query.filter_by(kind="Lost").count()
     found = Item.query.filter_by(kind="Found").count()
     feedback_count = Feedback.query.count()
-    return render_template("home.html", items=items, q=q, kind=kind, lost=lost, found=found, feedback_count=feedback_count)
+    unread = Notification.query.filter_by(user_id=session.get("user_id"), is_read=False).count() if session.get("user_id") else 0
+    return render_template("home.html", items=items, q=q, kind=kind, category=category, status=status, categories=categories, lost=lost, found=found, feedback_count=feedback_count, unread=unread)
 
 
 @app.route("/report", methods=["GET", "POST"])
@@ -267,6 +292,10 @@ def report_found(lost_id):
         flash("That lost report could not be found.", "error")
         return redirect(url_for("home"))
 
+    if lost_item.status != "Open":
+        flash("This lost report already has a found report or is no longer open.", "error")
+        return redirect(url_for("home"))
+
     if request.method == "POST":
         found_location = clean(request.form.get("found_location"), 200)
         found_description = clean(request.form.get("description"), 2000)
@@ -308,6 +337,8 @@ def report_found(lost_id):
         # Keep the lost report visible, but make it clear that someone has reported
         # a possible match so users do not submit the same found report repeatedly.
         lost_item.status = "Found Reported"
+        if lost_item.reporter_id and lost_item.reporter_id != session.get("user_id"):
+            notify(lost_item.reporter_id, "Your lost item may have been found", f"A found report was submitted for {lost_item.title}.", url_for("my_reports"))
         db.session.commit()
         flash("Great! Your found report is now visible to the person who lost it.", "success")
         return redirect(url_for("home"))
@@ -343,15 +374,30 @@ def feedback():
 @user_required
 def claim(id):
     item = db.session.get(Item, id)
+    uid = session["user_id"]
     if not item or item.kind != "Found" or item.status != "Open":
-        flash("This item is not available for a new claim.", "error"); return redirect(url_for("home"))
+        flash("This item is not available for a new claim.", "error")
+        return redirect(url_for("home"))
+    if item.reporter_id == uid:
+        flash("You cannot claim an item that you reported as found.", "error")
+        return redirect(url_for("home"))
+    existing = Claim.query.filter_by(item_id=id, user_id=uid).filter(Claim.status.in_(["Pending", "Approved"])).first()
+    if existing:
+        flash("You already have an active claim for this item.", "error")
+        return redirect(url_for("my_reports"))
     if request.method == "POST":
-        user = db.session.get(User, session["user_id"])
+        user = db.session.get(User, uid)
         proof = clean(request.form.get("proof"), 2000)
-        if not proof: flash("Please provide ownership proof.", "error"); return redirect(url_for("claim", id=id))
-        db.session.add(Claim(item_id=id, user_id=user.id, student_name=user.name, roll_number=clean(request.form.get("roll_number"),100), proof=proof))
-        item.status = "Claim in Progress"; db.session.commit()
-        flash("Claim submitted. Waiting for admin approval.", "success"); return redirect(url_for("my_reports"))
+        if not proof:
+            flash("Please provide ownership proof.", "error")
+            return redirect(url_for("claim", id=id))
+        claim_obj = Claim(item_id=id, user_id=user.id, student_name=user.name, roll_number=user.name, proof=proof)
+        db.session.add(claim_obj)
+        item.status = "Claim in Progress"
+        notify(item.reporter_id, "A claim was submitted", f"Someone submitted a claim for {item.title}.", url_for("my_reports")) if item.reporter_id and item.reporter_id != uid else None
+        db.session.commit()
+        flash("Claim submitted. Waiting for admin approval.", "success")
+        return redirect(url_for("my_reports"))
     return render_template("claim.html", item=item)
 
 @app.route("/user/register", methods=["GET","POST"])
@@ -418,14 +464,22 @@ def user_logout():
 @app.get("/my-reports")
 @user_required
 def my_reports():
-    uid=session["user_id"]; reports=Item.query.filter_by(reporter_id=uid).order_by(Item.id.desc()).all(); claims=Claim.query.filter_by(user_id=uid).order_by(Claim.id.desc()).all(); return render_template("my_reports.html", reports=reports, claims=claims)
+    uid=session["user_id"]
+    reports=Item.query.filter_by(reporter_id=uid).order_by(Item.id.desc()).all()
+    claims=Claim.query.filter_by(user_id=uid).order_by(Claim.id.desc()).all()
+    notifications=Notification.query.filter_by(user_id=uid).order_by(Notification.id.desc()).limit(10).all()
+    unread=Notification.query.filter_by(user_id=uid, is_read=False).count()
+    return render_template("my_reports.html", reports=reports, claims=claims, notifications=notifications, unread=unread)
 
 @app.post("/claim/<int:id>/confirm")
 @user_required
 def confirm_claim(id):
     c=db.session.get(Claim,id)
     if not c or c.user_id != session["user_id"] or c.status != "Approved": abort(403)
-    c.user_confirmed=True; c.item.status="Claimed"; db.session.commit(); flash("You confirmed the claim. Pickup is now ready.","success"); return redirect(url_for("my_reports"))
+    c.user_confirmed=True; c.item.status="Claimed"
+    if c.item.reporter_id and c.item.reporter_id != session["user_id"]:
+        notify(c.item.reporter_id, "Claim completed", f"The claim for {c.item.title} has been confirmed.", url_for("my_reports"))
+    db.session.commit(); flash("You confirmed the claim. Pickup is now ready.","success"); return redirect(url_for("my_reports"))
 
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
@@ -464,7 +518,14 @@ def admin_logout():
 def admin():
     claims = Claim.query.order_by(Claim.id.desc()).all()
     feedback = Feedback.query.order_by(Feedback.id.desc()).all()
-    return render_template("admin.html", claims=claims, feedback=feedback)
+    stats = {
+        "lost": Item.query.filter_by(kind="Lost").count(),
+        "found": Item.query.filter_by(kind="Found").count(),
+        "pending": Claim.query.filter_by(status="Pending").count(),
+        "claimed": Item.query.filter_by(status="Claimed").count(),
+        "users": User.query.count(),
+    }
+    return render_template("admin.html", claims=claims, feedback=feedback, stats=stats)
 
 
 @app.post("/admin/<int:id>/<action>")
@@ -479,14 +540,23 @@ def action(id, action):
         return redirect(url_for("admin"))
     claim.status = "Approved" if action == "approve" else "Rejected"
     if action == "approve":
-        # Admin approval alone keeps the item in progress until the claimant confirms.
         claim.item.status = "Claim in Progress"
+        notify(claim.user_id, "Claim approved", f"Your claim for {claim.item.title} was approved. Confirm it in My Reports.", url_for("my_reports"))
     else:
         # Make the item available again when the pending claim is rejected.
         claim.item.status = "Open"
+        notify(claim.user_id, "Claim rejected", f"Your claim for {claim.item.title} was rejected by the administrator.", url_for("home"))
     db.session.commit()
     flash(f"Claim {claim.status.lower()}.", "success")
     return redirect(url_for("admin"))
+
+
+@app.get("/notifications/read")
+@user_required
+def mark_notifications_read():
+    Notification.query.filter_by(user_id=session["user_id"], is_read=False).update({"is_read": True})
+    db.session.commit()
+    return redirect(url_for("my_reports"))
 
 
 @app.route("/uploads/<int:id>")

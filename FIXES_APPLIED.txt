@@ -1,0 +1,19 @@
+CampusFind - Bug Fixes Applied
+
+1. Database migration fix
+   - Startup migration is now idempotent: columns are checked before ALTER TABLE.
+   - Profile image column uses BYTEA on PostgreSQL and BLOB on SQLite.
+   - Prevents repeated startup ALTER TABLE errors and missing profile columns.
+
+2. Claim workflow recovery fix
+   - Users can cancel Pending or Admin Approved claims before final confirmation.
+   - Cancelling reopens the Found item so another claim can be submitted.
+   - Admin can reject an Approved-but-unconfirmed claim, also reopening the item.
+
+3. Claim confirmation safety fix
+   - Confirmation now rejects already-confirmed claims and requires an Approved, active claim.
+   - This prevents duplicate claim completion requests.
+
+Validation
+- app.py passes Python syntax compilation.
+- Existing requirements.txt is retained for Flask, Flask-SQLAlchemy, PostgreSQL, and Gunicorn.

@@ -1,0 +1,57 @@
+
+/* CampusFind UI Upgrade: lightweight, responsive, accessible */
+:root{
+  --cf-radius:18px;
+  --cf-shadow:0 10px 30px rgba(15,23,42,.10);
+  --cf-shadow-hover:0 18px 42px rgba(15,23,42,.16);
+}
+html{scroll-behavior:smooth}
+body{animation:cfPageIn .45s ease both}
+@keyframes cfPageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card,.item-card,.lost-card,.found-card,.feature-card,.stat-card,.post-card,.container-card{
+  transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;
+}
+.card:hover,.item-card:hover,.lost-card:hover,.found-card:hover,.feature-card:hover,.stat-card:hover,.post-card:hover,.container-card:hover{
+  transform:translateY(-4px);box-shadow:var(--cf-shadow-hover);
+}
+button,.btn,a.btn,input[type=submit],input[type=button]{
+  transition:transform .16s ease,box-shadow .16s ease,opacity .16s ease;
+}
+button:hover,.btn:hover,a.btn:hover,input[type=submit]:hover,input[type=button]:hover{transform:translateY(-1px)}
+button:active,.btn:active,a.btn:active,input[type=submit]:active,input[type=button]:active{transform:translateY(1px)}
+img{transition:transform .3s ease}
+.card img:hover,.item-card img:hover,.lost-card img:hover,.found-card img:hover{transform:scale(1.025)}
+input,select,textarea{transition:border-color .18s ease,box-shadow .18s ease}
+input:focus,select:focus,textarea:focus{
+  outline:none;
+  border-color:#6366f1!important;
+  box-shadow:0 0 0 4px rgba(99,102,241,.13)!important;
+}
+.cf-toast{
+  position:fixed;right:20px;bottom:20px;z-index:9999;
+  min-width:260px;max-width:calc(100vw - 40px);
+  padding:14px 16px;border-radius:14px;background:#111827;color:white;
+  box-shadow:0 16px 40px rgba(0,0,0,.22);
+  animation:cfToastIn .28s ease both;
+}
+@keyframes cfToastIn{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:none}}
+.cf-toast.cf-out{animation:cfToastOut .25s ease both}
+@keyframes cfToastOut{to{opacity:0;transform:translateY(15px)}}
+.cf-loading-overlay{
+  position:fixed;inset:0;z-index:10000;background:rgba(255,255,255,.78);
+  backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;
+}
+.cf-spinner{
+  width:42px;height:42px;border:4px solid rgba(99,102,241,.18);
+  border-top-color:#6366f1;border-radius:50%;animation:cfSpin .75s linear infinite;
+}
+@keyframes cfSpin{to{transform:rotate(360deg)}}
+.cf-reveal{opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
+.cf-reveal.cf-visible{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}
+}
+@media(max-width:700px){
+  .cf-toast{right:12px;bottom:12px}
+  .card,.item-card,.lost-card,.found-card,.feature-card,.stat-card,.post-card,.container-card{border-radius:14px}
+}

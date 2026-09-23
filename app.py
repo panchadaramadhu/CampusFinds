@@ -112,24 +112,29 @@ class Feedback(db.Model):
 
 with app.app_context():
     db.create_all()
-    # Existing databases need these newer columns too.
-    for sql in [
-        "ALTER TABLE items ADD COLUMN pickup_location VARCHAR(200)",
-        "ALTER TABLE items ADD COLUMN linked_lost_id INTEGER"
-    ]:
-        try:
-            db.session.execute(db.text(sql))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-    for sql in [
-        "ALTER TABLE users ADD COLUMN profile_photo BYTEA",
-        "ALTER TABLE users ADD COLUMN profile_photo_mime VARCHAR(50)"
-    ]:
-        try:
-            db.session.execute(db.text(sql)); db.session.commit()
-        except Exception:
-            db.session.rollback()
+
+    # Lightweight, idempotent schema migration for existing installations.
+    # The old code attempted ALTER TABLE on every startup and relied on caught
+    # exceptions. That was noisy and could leave SQLite databases missing
+    # columns. Inspect the actual schema first and use a dialect-safe type.
+    inspector = db.inspect(db.engine)
+    dialect = db.engine.dialect.name
+
+    def add_column_if_missing(table_name, column_name, column_type):
+        columns = {c["name"] for c in inspector.get_columns(table_name)}
+        if column_name in columns:
+            return
+        db.session.execute(db.text(
+            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
+        ))
+        db.session.commit()
+        inspector.clear_cache()
+
+    blob_type = "BYTEA" if dialect == "postgresql" else "BLOB"
+    add_column_if_missing("items", "pickup_location", "VARCHAR(200)")
+    add_column_if_missing("items", "linked_lost_id", "INTEGER")
+    add_column_if_missing("users", "profile_photo", blob_type)
+    add_column_if_missing("users", "profile_photo_mime", "VARCHAR(50)")
 
 
 def csrf_token():
@@ -474,12 +479,35 @@ def my_reports():
 @app.post("/claim/<int:id>/confirm")
 @user_required
 def confirm_claim(id):
-    c=db.session.get(Claim,id)
-    if not c or c.user_id != session["user_id"] or c.status != "Approved": abort(403)
-    c.user_confirmed=True; c.item.status="Claimed"
+    c = db.session.get(Claim, id)
+    if not c or c.user_id != session["user_id"] or c.status != "Approved" or c.user_confirmed:
+        abort(403)
+    c.user_confirmed = True
+    c.item.status = "Claimed"
     if c.item.reporter_id and c.item.reporter_id != session["user_id"]:
         notify(c.item.reporter_id, "Claim completed", f"The claim for {c.item.title} has been confirmed.", url_for("my_reports"))
-    db.session.commit(); flash("You confirmed the claim. Pickup is now ready.","success"); return redirect(url_for("my_reports"))
+    db.session.commit()
+    flash("You confirmed the claim. Pickup is now ready.", "success")
+    return redirect(url_for("my_reports"))
+
+
+@app.post("/claim/<int:id>/cancel")
+@user_required
+def cancel_claim(id):
+    # Prevent an approved claim from permanently locking an item when the
+    # claimant changes their mind or does not want to complete the handover.
+    c = db.session.get(Claim, id)
+    if not c or c.user_id != session["user_id"] or c.status not in {"Pending", "Approved"} or c.user_confirmed:
+        abort(403)
+    item = c.item
+    c.status = "Cancelled"
+    if item.status == "Claim in Progress":
+        item.status = "Open"
+    if item.reporter_id and item.reporter_id != session["user_id"]:
+        notify(item.reporter_id, "Claim cancelled", f"The claim for {item.title} was cancelled and the item is available again.", url_for("home"))
+    db.session.commit()
+    flash("Claim cancelled. The item is available for another claim.", "success")
+    return redirect(url_for("my_reports"))
 
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
@@ -536,14 +564,19 @@ def action(id, action):
     claim = db.session.get(Claim, id)
     if not claim:
         return redirect(url_for("admin"))
-    if claim.status != "Pending":
-        return redirect(url_for("admin"))
-    claim.status = "Approved" if action == "approve" else "Rejected"
     if action == "approve":
+        if claim.status != "Pending":
+            return redirect(url_for("admin"))
+        claim.status = "Approved"
         claim.item.status = "Claim in Progress"
         notify(claim.user_id, "Claim approved", f"Your claim for {claim.item.title} was approved. Confirm it in My Reports.", url_for("my_reports"))
     else:
-        # Make the item available again when the pending claim is rejected.
+        # Admin can reject either a pending claim or an approved claim that
+        # has not been confirmed. This provides a recovery path instead of
+        # leaving the item stuck in Claim in Progress forever.
+        if claim.status not in {"Pending", "Approved"} or claim.user_confirmed:
+            return redirect(url_for("admin"))
+        claim.status = "Rejected"
         claim.item.status = "Open"
         notify(claim.user_id, "Claim rejected", f"Your claim for {claim.item.title} was rejected by the administrator.", url_for("home"))
     db.session.commit()

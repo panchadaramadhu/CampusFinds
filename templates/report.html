@@ -1,3 +1,6 @@
+
+<link rel="stylesheet" href="{{ url_for('static', filename='campusfind_ui_upgrade.css') }}">
+<script defer src="{{ url_for('static', filename='campusfind_ui_upgrade.js') }}"></script>
 {% extends "base.html" %}{% block content %}<section class="formpage reveal"><div><b>NEW REPORT</b><h1>Every detail helps.</h1><p>Tell the campus community where the item was lost or found. For found items, add a safe pickup point if you know one.</p><div class="tip-card">💡 Never post sensitive information such as passwords, OTPs, or private account details.</div></div><form class="form" method="post" enctype="multipart/form-data" novalidate><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="report-type-switch" aria-label="Choose report type">
   <a href="{{ url_for('report', kind='Lost') }}" class="type-choice {% if selected_kind != 'Found' %}active{% endif %}">🔴 Report Lost</a>
   <a href="{{ url_for('report', kind='Found') }}" class="type-choice {% if selected_kind == 'Found' %}active{% endif %}">🟢 Report Found</a>
